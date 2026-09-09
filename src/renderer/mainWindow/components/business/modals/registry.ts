@@ -20,6 +20,7 @@ import CreateSheetModal from './CreateSheetModal';
 import RenameSheetModal from './RenameSheetModal';
 import TextModal from './TextModal';
 import SearchLyricModal from './SearchLyricModal';
+import SwitchSourceModal from './SwitchSourceModal';
 import ScanFolderModal from './ScanFolderModal';
 import ThemeDetailModal from './ThemeDetailModal';
 import UpdateModal from './UpdateModal';
@@ -41,6 +42,7 @@ export const modalRegistry = {
     RenameSheetModal,
     TextModal,
     SearchLyricModal,
+    SwitchSourceModal,
     ScanFolderModal,
     ThemeDetailModal,
     UpdateModal,

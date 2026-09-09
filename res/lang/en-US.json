@@ -135,6 +135,16 @@
         "collapse_player_detail": "Collapse player details",
         "play_all": "Play All"
     },
+    "switch_source": {
+        "menu": "Switch Source",
+        "title": "Switch Source",
+        "search_placeholder": "Enter song name or artist...",
+        "success": "Music source switched~",
+        "failed": "Failed to switch music source",
+        "no_plugin": "No searchable music source plugin. Please install one in Plugin Management",
+        "no_result": "No results",
+        "search_failed": "Search failed"
+    },
     "lyric": {
         "search": "Search Lyrics",
         "search_placeholder": "Enter song name or artist...",

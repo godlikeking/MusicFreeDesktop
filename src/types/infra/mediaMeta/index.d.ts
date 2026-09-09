@@ -18,6 +18,8 @@ export interface IMediaMeta {
     };
     /** 用户设置的歌词时间偏移（秒），正值歌词提前，负值延后 */
     lyricOffset?: number;
+    /** 手动切换的音源：播放/下载时优先用该歌曲所属插件取流，失败回退原平台 */
+    associatedSource?: IMusic.IMusicItem;
 }
 
 /** setMeta patch 类型：null 表示删除该字段（RFC 7396） */

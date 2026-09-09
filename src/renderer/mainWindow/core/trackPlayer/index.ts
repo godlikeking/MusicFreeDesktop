@@ -15,6 +15,7 @@ import pluginManager from '@infra/pluginManager/renderer';
 import appConfig from '@infra/appConfig/renderer';
 import downloadManager from '@infra/downloadManager/renderer';
 import fsUtil from '@infra/fsUtil/renderer';
+import mediaMeta from '@infra/mediaMeta/renderer';
 import { addToRecentlyPlayed } from '../recentlyPlayed';
 import appSync from '@infra/appSync/renderer/main';
 import { syncKV } from '@renderer/common/kvStore';
@@ -480,6 +481,44 @@ class TrackPlayer {
         }
     }
 
+    /**
+     * 换源后立即重新加载当前歌曲音源，保持播放进度与播放/暂停状态。
+     * 仅当当前播放歌曲就是目标歌曲时由调用方触发。
+     */
+    async refreshCurrentSource(): Promise<boolean> {
+        const current = this.playQueue.getCurrentMusic();
+        if (!current) return false;
+
+        const currentTime = store.get(progressAtom).currentTime;
+        const wasPlaying = this.audioController.playerState === PlayerState.Playing;
+
+        try {
+            store.set(playerStateAtom, PlayerState.Buffering);
+
+            const fullItem = await musicSheet.getRawMusicItem(current.platform, current.id);
+            const musicItem = fullItem ?? (current as IMusic.IMusicItem);
+
+            const result = await this.resolveSource(musicItem, store.get(qualityAtom));
+
+            if (result?.url && this.isCurrentMusic(current)) {
+                this.audioController.setTrackSource(result, musicItem);
+                this.audioController.seekTo(currentTime);
+                if (wasPlaying) this.audioController.play();
+                if (result.quality) {
+                    store.set(qualityAtom, result.quality);
+                    syncKV.set('player.currentQuality', result.quality);
+                }
+                return true;
+            }
+
+            store.set(playerStateAtom, wasPlaying ? PlayerState.Playing : PlayerState.Paused);
+            return false;
+        } catch {
+            store.set(playerStateAtom, wasPlaying ? PlayerState.Playing : PlayerState.Paused);
+            return false;
+        }
+    }
+
     setRepeatMode(mode: RepeatMode): void {
         const prev = store.get(repeatModeAtom);
 
@@ -769,7 +808,10 @@ class TrackPlayer {
     }
 
     /**
-     * 解析音源：优先使用已下载的本地文件，否则调用插件获取。
+     * 解析音源：
+     * 1. 已下载的本地文件
+     * 2. 用户手动切换的关联音源（失败回退原平台）
+     * 3. 歌曲所属平台插件
      */
     private async resolveSource(
         musicItem: IMusic.IMusicItem,
@@ -780,16 +822,39 @@ class TrackPlayer {
             musicItem,
             opts?.requireQualityMatch ? quality : undefined,
         );
-        return (
-            localSource ??
-            (await pluginManager.adapters.getMediaSource({
-                hash: pluginManager.getPluginByPlatform(musicItem.platform)?.hash ?? '',
-                musicItem,
-                quality,
-                qualityOrder: QUALITY_KEYS,
-                qualityFallbackOrder: this.getQualityFallbackOrder(),
-            }))
-        );
+        if (localSource) return localSource;
+
+        const fallbackOrder = this.getQualityFallbackOrder();
+
+        // 手动切换过来源：优先用关联音源取流，全音质失败再回退原平台
+        let linkedItem: IMusic.IMusicItem | undefined;
+        try {
+            const meta = await mediaMeta.getMeta(musicItem.platform, String(musicItem.id));
+            linkedItem = meta?.associatedSource;
+        } catch {
+            linkedItem = undefined;
+        }
+        if (linkedItem) {
+            const linkedHash = pluginManager.getPluginByPlatform(linkedItem.platform)?.hash;
+            if (linkedHash) {
+                const linkedResult = await pluginManager.adapters.getMediaSource({
+                    hash: linkedHash,
+                    musicItem: linkedItem,
+                    quality,
+                    qualityOrder: QUALITY_KEYS,
+                    qualityFallbackOrder: fallbackOrder,
+                });
+                if (linkedResult?.url) return linkedResult;
+            }
+        }
+
+        return pluginManager.adapters.getMediaSource({
+            hash: pluginManager.getPluginByPlatform(musicItem.platform)?.hash ?? '',
+            musicItem,
+            quality,
+            qualityOrder: QUALITY_KEYS,
+            qualityFallbackOrder: fallbackOrder,
+        });
     }
 }
 

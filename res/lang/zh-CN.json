@@ -135,6 +135,16 @@
         "collapse_player_detail": "收起播放详情",
         "play_all": "播放全部"
     },
+    "switch_source": {
+        "menu": "切换来源",
+        "title": "切换来源",
+        "search_placeholder": "输入歌曲名或歌手...",
+        "success": "已切换音源~",
+        "failed": "切换音源失败",
+        "no_plugin": "暂无可搜索的音源插件，请先在插件管理中安装",
+        "no_result": "暂无结果",
+        "search_failed": "搜索失败"
+    },
     "lyric": {
         "search": "搜索歌词",
         "search_placeholder": "输入歌曲名或歌手...",

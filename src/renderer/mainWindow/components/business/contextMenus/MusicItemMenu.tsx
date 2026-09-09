@@ -12,6 +12,7 @@ import localMusic from '@infra/localMusic/renderer';
 import fsUtil from '@infra/fsUtil/renderer';
 import systemUtil from '@infra/systemUtil/renderer';
 import i18n from '@infra/i18n/renderer';
+import pluginManager from '@infra/pluginManager/renderer';
 import { LOCAL_PLUGIN_NAME } from '@common/constant';
 import { PLAY_QUEUE_SHEET_ID, DOWNLOADED_SHEET_ID } from '@infra/musicSheet/common/constant';
 import {
@@ -25,6 +26,7 @@ import {
     Download,
     FolderOpen,
     PenLine,
+    ArrowRightLeft,
 } from 'lucide-react';
 
 export interface MusicItemMenuContext {
@@ -117,6 +119,18 @@ export function MusicItemMenu(ctx: MusicItemMenuContext): ContextMenuEntry[] {
             showModal('AddMusicToSheetModal', { musicItems: items });
         },
     });
+
+    // ── 切换音源（仅单曲，且存在可搜索音乐的插件） ──
+    if (isSingle && pluginManager.getSearchablePlugins('music').length > 0) {
+        entries.push({
+            id: 'switch-source',
+            icon: <ArrowRightLeft />,
+            label: i18n.t('switch_source.menu'),
+            onClick: () => {
+                showModal('SwitchSourceModal', { musicItem: items[0] });
+            },
+        });
+    }
 
     // ── 从歌单内删除（仅在用户歌单内，排除特殊歌单） ──
     if (
