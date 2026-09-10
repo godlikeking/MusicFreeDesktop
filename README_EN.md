@@ -39,16 +39,19 @@ A plugin-based, customizable, ad-free music player for **Windows**, **macOS**, a
 
 👉 [Feishu Cloud Drive](https://r0rvr854dd1.feishu.cn/drive/folder/IrVEfD67KlWZGkdqwjecLHFNnBb?from=from_copylink)
 
+> 🍴 **This fork additionally provides a portable Windows x64 build** (no installation required; user data stays in the `portable/` folder next to the executable). See [Releases](https://github.com/godlikeking/MusicFreeDesktop/releases).
+
 ---
 
 ## 🚀 Features
 
-|       Feature       | Description                                                                                                                                                                                                                                                       |
-| :-----------------: | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| **🔌 Plugin-based** | MusicFree is purely a player — it **does not bundle** any music sources. All search, playback, and playlist import features are powered by **plugins**. As long as a plugin exists for a music source on the internet, you can search and play it with MusicFree. |
-| **🎨 Customizable** | Customize the app's appearance and background via theme packs, with a brand-new semantic CSS variable system and iframe backgrounds. See [Theme Packs](#-theme-packs) below.                                                                                      |
-|   **🚫 Ad-free**    | Open-sourced under AGPL 3.0, and will remain free.                                                                                                                                                                                                                |
-|   **🔒 Privacy**    | All data is stored locally. Your personal information is never uploaded.                                                                                                                                                                                          |
+|       Feature        | Description                                                                                                                                                                                                                                                       |
+| :------------------: | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **🔌 Plugin-based**  | MusicFree is purely a player — it **does not bundle** any music sources. All search, playback, and playlist import features are powered by **plugins**. As long as a plugin exists for a music source on the internet, you can search and play it with MusicFree. |
+| **🎨 Customizable**  | Customize the app's appearance and background via theme packs, with a brand-new semantic CSS variable system and iframe backgrounds. See [Theme Packs](#-theme-packs) below.                                                                                      |
+|    **🚫 Ad-free**    | Open-sourced under AGPL 3.0, and will remain free.                                                                                                                                                                                                                |
+|    **🔒 Privacy**    | All data is stored locally. Your personal information is never uploaded.                                                                                                                                                                                          |
+| **🔀 Switch Source** | Switch any song's playback source to the same track from another source plugin with one click. Seamless switching while playing, progress preserved, association persisted. See [Switch Source](#-switch-source) below.                                           |
 
 **Plugin-supported features**: Search (music / albums / artists / playlists), playback, album details, artist details, single track import, playlist import, lyrics, top lists, recommended playlists, song comments, multi-quality switching (standard / high / super / lossless).
 
@@ -67,7 +70,7 @@ MusicFree's core capabilities are driven by plugins. The plugin protocol is comp
 
 ```
 Search ─── Music / Albums / Artists / Playlists
-Play   ─── Multi-quality switching · Source redirect
+Play   ─── Multi-quality switching · Source redirect · Per-song source switch
 Content ── Album details · Artist works · Lyrics · Comments
 Discover ─ Top lists · Recommended playlists · Playlist categories
 Import ─── Single track import · Playlist import
@@ -78,6 +81,29 @@ Import ─── Single track import · Playlist import
 Plugins run in a secure sandbox with access to the following built-in modules:
 
 `axios` · `cheerio` · `dayjs` · `big-integer` · `qs` · `he` · `crypto-js` · `webdav`
+
+---
+
+## 🔀 Switch Source
+
+The same song can differ in quality, be region-locked, or be unavailable across source plugins. This fork adds **per-song source switching**: point a song's playback stream to the same track from another plugin without searching again or modifying your playlists.
+
+### How to use
+
+1. In any song list (search results, playlists, albums, local music, play queue…), **right-click a song**;
+2. Select **"Switch Source"** (single track only — hidden for multi-selection);
+3. Pick a target plugin tab in the dialog. The keyword is pre-filled as "title artist" and can be edited;
+4. Click the target track to switch. The currently linked source is marked with ✓.
+
+### Behavior
+
+- **While playing**: switches to the new source instantly, preserving playback progress and play/pause state. For non-playing tracks it takes effect on next playback;
+- **Persistent**: the association is stored in the local database and restored after restart;
+- **Source labels sync**: after switching, the player bar, play queue, the "Source" column in song tables, and the fullscreen player all show the new source;
+- **Song identity unchanged**: playlists, favorites, lyrics, and downloads still belong to the original song record — only the audio stream comes from the new source;
+- **Automatic fallback**: if the new source cannot provide any quality, playback automatically falls back to the original platform.
+
+> Unlike the plugin-level "Source redirect" (configured per plugin in Plugin Management and applied globally), Switch Source applies to **a single song**.
 
 ---
 
