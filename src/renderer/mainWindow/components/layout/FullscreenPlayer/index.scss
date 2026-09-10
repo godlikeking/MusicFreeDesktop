@@ -199,6 +199,10 @@
         margin: 0 var(--space-2);
     }
 
+    &__source {
+        color: var(--color-text-secondary, var(--color-text-muted));
+    }
+
     // ── 歌词容器（含遮罩） ──
 
     &__lyric-container {

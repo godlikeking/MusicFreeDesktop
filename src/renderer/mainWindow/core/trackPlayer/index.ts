@@ -24,6 +24,7 @@ import { type IAudioController, createAudioController } from './audioController'
 import PlayQueue from './playQueue';
 import LyricManager from './lyricManager';
 import type { IPlayOptions, IResolveSourceOptions } from './types';
+import { setupDisplaySource } from './displaySource';
 import {
     store,
     currentMusicAtom,
@@ -189,6 +190,7 @@ class TrackPlayer {
         this.bindAudioEvents();
         this.bindAppSyncCommands();
         setupAppSyncBridge();
+        setupDisplaySource();
         this.bindMediaSession();
 
         // 6. beforeunload 兜底

@@ -11,7 +11,11 @@ import { useAtomValue } from 'jotai/react';
 import { useTranslation } from 'react-i18next';
 import { cn } from '@common/cn';
 import { transition as motionTransition } from '@common/motionTokens';
-import { useCurrentMusic, useLyric } from '@renderer/mainWindow/core/trackPlayer/hooks';
+import {
+    useCurrentMusic,
+    useLyric,
+    useDisplayPlatform,
+} from '@renderer/mainWindow/core/trackPlayer/hooks';
 import { useConfigValue } from '@renderer/common/hooks/useConfigValue';
 import { syncKV } from '@renderer/common/kvStore';
 import defaultCover from '@assets/imgs/album-cover.jpg';
@@ -37,6 +41,7 @@ const overlayVariants = {
 const FullscreenPlayer = memo(function FullscreenPlayer() {
     const open = useAtomValue(fullscreenPlayerOpenAtom);
     const currentMusic = useCurrentMusic();
+    const displayPlatform = useDisplayPlatform(currentMusic);
     const { t } = useTranslation();
 
     // 歌词设置状态
@@ -187,6 +192,16 @@ const FullscreenPlayer = memo(function FullscreenPlayer() {
                                                         •
                                                     </span>
                                                     {currentMusic.album}
+                                                </>
+                                            )}
+                                            {displayPlatform && (
+                                                <>
+                                                    <span className="l-fullscreen-player__dot">
+                                                        •
+                                                    </span>
+                                                    <span className="l-fullscreen-player__source">
+                                                        {displayPlatform}
+                                                    </span>
                                                 </>
                                             )}
                                         </>

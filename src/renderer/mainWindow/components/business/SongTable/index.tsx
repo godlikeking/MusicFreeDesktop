@@ -25,7 +25,11 @@ import { useTranslation } from 'react-i18next';
 import { ArrowUp, ArrowDown } from 'lucide-react';
 import { cn } from '@common/cn';
 import { RequestStatus } from '@common/constant';
-import { useCurrentMusic } from '../../../core/trackPlayer/hooks';
+import { useCurrentMusic, useDisplayPlatformMap } from '../../../core/trackPlayer/hooks';
+import {
+    getDisplayPlatform,
+    preloadDisplayPlatforms,
+} from '../../../core/trackPlayer/displaySource';
 import { ListFooter } from '../../ui/ListFooter';
 import { StatusPlaceholder } from '../../ui/StatusPlaceholder';
 import './index.scss';
@@ -325,6 +329,8 @@ export function SongTable({
 }: SongTableProps) {
     const { t, i18n } = useTranslation();
     const currentMusic = useCurrentMusic();
+    // 订阅换源带来的显示来源变化
+    const displayPlatformMap = useDisplayPlatformMap();
     const [containerEl, setContainerEl] = useState<HTMLDivElement | null>(null);
     const virtuosoRef = useRef<TableVirtuosoHandle>(null);
 
@@ -447,13 +453,15 @@ export function SongTable({
                 header: t('media.platform'),
                 width: 88,
                 render: (item) => (
-                    <span className="song-table__platform-badge">{item.platform}</span>
+                    <span className="song-table__platform-badge">
+                        {getDisplayPlatform(item) ?? item.platform}
+                    </span>
                 ),
             });
         }
 
         return cols;
-    }, [hideSet, t, enableSort]);
+    }, [hideSet, t, enableSort, displayPlatformMap]);
 
     // ── 列排序状态 ──
     const [sortState, setSortState] = useState<{
@@ -529,6 +537,11 @@ export function SongTable({
             return result * dir;
         });
     }, [data, enableSort, sortColumn, sortDirection, collator]);
+
+    // 列表数据变化时，批量加载这些歌曲的换源显示平台
+    useEffect(() => {
+        preloadDisplayPlatforms(sortedData as Array<{ platform: string; id: string }>);
+    }, [sortedData]);
 
     dataRef.current = sortedData;
 

@@ -32,5 +32,10 @@ export const currentLyricAtom: PrimitiveAtom<ICurrentLyric | null> = atom(
 export const associatedLyricAtom: PrimitiveAtom<IMusic.IMusicItem | null> = atom(
     null as IMusic.IMusicItem | null,
 );
+/**
+ * 显示来源映射：compositeKey(platform, id) → 换源后的展示平台。
+ * 歌曲身份 (platform,id) 不变，仅 UI 上的“来源”标签读取这里，缺省回退原平台。
+ */
+export const displayPlatformAtom: PrimitiveAtom<Record<string, string>> = atom({});
 
 export { store };

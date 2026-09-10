@@ -16,6 +16,7 @@ import {
     useCurrentMusic,
     usePlayerState,
     useRepeatMode,
+    useDisplayPlatform,
 } from '@renderer/mainWindow/core/trackPlayer/hooks';
 import { REPEAT_MODE_MAP } from '@renderer/common/repeatModeMap';
 import { Artwork } from '../../ui/Artwork';
@@ -47,6 +48,7 @@ export default function PlayerBar() {
     const currentMusic = useCurrentMusic();
     const playerState = usePlayerState();
     const repeatMode = useRepeatMode();
+    const displayPlatform = useDisplayPlatform(currentMusic);
 
     const [enableDesktopLyric] = useConfigValue('lyric.enableDesktopLyric');
 
@@ -91,11 +93,11 @@ export default function PlayerBar() {
                                             </span>
                                         </>
                                     )}
-                                    {currentMusic.platform && (
+                                    {displayPlatform && (
                                         <>
                                             <span className="l-player-bar__dot">·</span>
                                             <span className="l-player-bar__source-badge">
-                                                {currentMusic.platform}
+                                                {displayPlatform}
                                             </span>
                                         </>
                                     )}

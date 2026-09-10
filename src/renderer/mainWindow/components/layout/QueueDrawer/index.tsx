@@ -18,7 +18,12 @@ import { cn } from '@common/cn';
 import { isSameMedia } from '@common/mediaKey';
 import type { IMusicItemSlim } from '@appTypes/infra/musicSheet';
 import trackPlayer from '@renderer/mainWindow/core/trackPlayer';
-import { useCurrentMusic, useMusicQueue } from '@renderer/mainWindow/core/trackPlayer/hooks';
+import {
+    useCurrentMusic,
+    useMusicQueue,
+    useDisplayPlatformMap,
+} from '@renderer/mainWindow/core/trackPlayer/hooks';
+import { getDisplayPlatform } from '@renderer/mainWindow/core/trackPlayer/displaySource';
 import Drawer from '../../ui/Drawer';
 import { queueDrawerOpenAtom, closeQueueDrawer } from './queueDrawerState';
 import './index.scss';
@@ -39,6 +44,7 @@ interface QueueItemRowProps {
     item: IMusicItemSlim;
     index: number;
     isActive: boolean;
+    displayPlatform: string;
     onPlay: (index: number) => void;
     onRemove: (item: IMusicItemSlim) => void;
     onContextMenu: (item: IMusicItemSlim, e: React.MouseEvent) => void;
@@ -48,6 +54,7 @@ const QueueItemRow = React.memo(function QueueItemRow({
     item,
     index,
     isActive,
+    displayPlatform,
     onPlay,
     onRemove,
     onContextMenu,
@@ -119,7 +126,7 @@ const QueueItemRow = React.memo(function QueueItemRow({
                 <div className="l-queue-drawer__item-title">{item.title}</div>
                 <div className="l-queue-drawer__item-meta">
                     <span className="l-queue-drawer__item-artist">{item.artist}</span>
-                    <span className="l-queue-drawer__item-source">{item.platform}</span>
+                    <span className="l-queue-drawer__item-source">{displayPlatform}</span>
                 </div>
             </div>
 
@@ -168,6 +175,8 @@ export default function QueueDrawer() {
     const open = useAtomValue(queueDrawerOpenAtom);
     const queue = useMusicQueue();
     const currentMusic = useCurrentMusic();
+    // 订阅换源带来的显示来源变化
+    const displayPlatformMap = useDisplayPlatformMap();
 
     // 计算当前播放的索引
     const activeIndex = useMemo(() => {
@@ -216,12 +225,13 @@ export default function QueueDrawer() {
                 item={item}
                 index={index}
                 isActive={index === activeIndex}
+                displayPlatform={getDisplayPlatform(item) ?? item.platform}
                 onPlay={handlePlay}
                 onRemove={handleRemove}
                 onContextMenu={handleContextMenu}
             />
         ),
-        [activeIndex, handlePlay, handleRemove, handleContextMenu],
+        [activeIndex, displayPlatformMap, handlePlay, handleRemove, handleContextMenu],
     );
 
     // ── Header（覆盖 Drawer 默认 header） ──
