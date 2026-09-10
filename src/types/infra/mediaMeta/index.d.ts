@@ -18,6 +18,8 @@ export interface IMediaMeta {
     };
     /** 用户设置的歌词时间偏移（秒），正值歌词提前，负值延后 */
     lyricOffset?: number;
+    /** 用户手动取消过自动歌词关联，本曲不再自动搜索歌词（重新手动关联后清除） */
+    associatedLyricSkipped?: boolean;
     /** 手动切换的音源：播放/下载时优先用该歌曲所属插件取流，失败回退原平台 */
     associatedSource?: IMusic.IMusicItem;
 }

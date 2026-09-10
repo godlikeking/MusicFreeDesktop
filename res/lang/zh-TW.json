@@ -405,6 +405,8 @@
             "subtitle": "樣式、顏色與顯示策略",
             "enable_desktop_label": "顯示桌面歌詞",
             "enable_desktop_desc": "支援桌面與播放器內同步",
+            "auto_search_label": "自動匹配歌詞",
+            "auto_search_desc": "目前歌曲無歌詞時，自動在其他音源插件搜尋同名歌曲並關聯歌詞",
             "always_on_top_label": "桌面歌詞置頂",
             "always_on_top_desc": "歌詞視窗始終在最前方",
             "lock_label": "鎖定桌面歌詞",

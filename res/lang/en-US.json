@@ -405,6 +405,8 @@
             "subtitle": "Style, Color & Display Settings",
             "enable_desktop_label": "Show desktop lyrics",
             "enable_desktop_desc": "Sync with desktop and in-player display",
+            "auto_search_label": "Auto-match lyrics",
+            "auto_search_desc": "When the current song has no lyrics, automatically search other source plugins for the same track",
             "always_on_top_label": "Desktop lyrics on top",
             "always_on_top_desc": "Lyrics window always stays in front",
             "lock_label": "Lock desktop lyrics",

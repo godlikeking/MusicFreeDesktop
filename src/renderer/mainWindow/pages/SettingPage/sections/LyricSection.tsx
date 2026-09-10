@@ -30,6 +30,7 @@ const FONT_SIZE_MAX = 80;
 export function LyricSection() {
     const { t } = useTranslation();
     const [enableDesktopLyric, setEnableDesktopLyric] = useConfigValue('lyric.enableDesktopLyric');
+    const [autoSearchMissing, setAutoSearchMissing] = useConfigValue('lyric.autoSearchMissing');
     const [alwaysOnTop, setAlwaysOnTop] = useConfigValue('lyric.alwaysOnTop');
     const [lockLyric, setLockLyric] = useConfigValue('lyric.lockLyric');
     const [fontData, setFontData] = useConfigValue('lyric.fontData');
@@ -144,6 +145,13 @@ export function LyricSection() {
                         checked={enableDesktopLyric ?? false}
                         onChange={setEnableDesktopLyric}
                     />
+                }
+            />
+            <SettingRow
+                label={t('settings.lyric.auto_search_label')}
+                description={t('settings.lyric.auto_search_desc')}
+                control={
+                    <Toggle checked={autoSearchMissing ?? true} onChange={setAutoSearchMissing} />
                 }
             />
             <SettingRow

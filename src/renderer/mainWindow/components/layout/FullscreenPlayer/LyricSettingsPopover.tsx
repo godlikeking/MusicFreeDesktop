@@ -149,6 +149,7 @@ export default memo(function LyricSettingsPopover({
         if (!currentMusic) return;
         await mediaMeta.setMeta(currentMusic.platform, String(currentMusic.id), {
             associatedLyric: null,
+            associatedLyricSkipped: true,
         });
         await trackPlayer.refreshLyric();
         showToast(t('lyric.unlinked'));

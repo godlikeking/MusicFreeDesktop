@@ -153,6 +153,7 @@ export default function SearchLyricModal({ close }: SearchLyricModalProps) {
                         rawLrc,
                         translation,
                     },
+                    associatedLyricSkipped: null,
                 });
 
                 // 刷新当前歌词

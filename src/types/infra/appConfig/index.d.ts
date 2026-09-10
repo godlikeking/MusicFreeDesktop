@@ -38,6 +38,8 @@ interface _IAppConfig {
     'lyric.enableStatusBarLyric': boolean;
     /** 显示桌面歌词 */
     'lyric.enableDesktopLyric': boolean;
+    /** 当前歌曲无歌词时，自动在其他音源插件搜索并关联歌词 */
+    'lyric.autoSearchMissing': boolean;
     /** 桌面歌词置顶 */
     'lyric.alwaysOnTop': boolean;
     /** 锁定桌面歌词 */

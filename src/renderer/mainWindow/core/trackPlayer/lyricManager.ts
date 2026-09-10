@@ -8,10 +8,48 @@ import LyricParser from '@common/lyricParser';
 import { compositeKey } from '@common/mediaKey';
 import pluginManager from '@infra/pluginManager/renderer';
 import mediaMeta from '@infra/mediaMeta/renderer';
+import appConfig from '@infra/appConfig/renderer';
 import { store, currentLyricAtom, progressAtom, associatedLyricAtom } from './store';
 
 /** 歌词偏移写入 mediaMeta 的防抖延迟（ms） */
 const OFFSET_PERSIST_DELAY = 500;
+
+/** 自动搜索时每个插件取前 N 条候选做匹配 */
+const AUTO_SEARCH_CANDIDATE_LIMIT = 3;
+/** 自动关联的最低匹配分：标题需完全相等或互相包含 */
+const AUTO_SEARCH_MIN_SCORE = 70;
+
+/** 文本归一化：仅保留中文、字母与数字，用于标题/歌手匹配 */
+function normalizeText(text: unknown): string {
+    return String(text ?? '')
+        .toLowerCase()
+        .replace(/[^\u4e00-\u9fa5a-z0-9]/g, '');
+}
+
+/**
+ * 为歌词候选打分：标题完全相等 100，互相包含 70，
+ * 歌手完全相等 +30，互相包含 +15。
+ */
+function scoreLyricCandidate(candidate: IMusic.IMusicItem, title: string, artist: string): number {
+    const t = normalizeText(candidate.title);
+    const qt = normalizeText(title);
+    if (!t || !qt) return -1;
+
+    let score = 0;
+    if (t === qt) {
+        score += 100;
+    } else if (t.includes(qt) || qt.includes(t)) {
+        score += 70;
+    }
+
+    const qa = normalizeText(artist);
+    const a = normalizeText(candidate.artist);
+    if (qa && a) {
+        if (a === qa) score += 30;
+        else if (a.includes(qa) || qa.includes(a)) score += 15;
+    }
+    return score;
+}
 
 class LyricManager {
     private parser: LyricParser | null = null;
@@ -23,6 +61,8 @@ class LyricManager {
     private userOffset = 0;
     /** 防抖写入 mediaMeta 的定时器 */
     private persistTimer: ReturnType<typeof setTimeout> | undefined = undefined;
+    /** 本会话已尝试过自动搜索歌词的歌曲，避免重复请求 */
+    private autoSearchTried = new Set<string>();
 
     /** 获取并解析歌词 */
     async fetchLyric(musicItem: IMusic.IMusicItem): Promise<void> {
@@ -45,24 +85,25 @@ class LyricManager {
             if (!lyricSource?.rawLrc && !lyricSource?.lrc) {
                 this.parser = null;
                 store.set(currentLyricAtom, null);
+                // 无歌词且用户未手动关联/未跳过自动搜索时，后台自动搜索其他音源
+                if (!meta?.associatedLyric && !meta?.associatedLyricSkipped) {
+                    void this.tryAutoSearchLyric(musicItem, key);
+                }
                 return;
             }
 
-            this.parser = new LyricParser(lyricSource.rawLrc ?? lyricSource.lrc ?? '', {
+            this.applyLyric(
+                lyricSource.rawLrc ?? lyricSource.lrc ?? '',
+                lyricSource.translation,
                 musicItem,
-                translation: lyricSource.translation,
-            });
-
-            // C-17: 初始定位到当前播放时间（恢复播放等场景，避免歌词从头开始）
-            const currentTime = store.get(progressAtom).currentTime;
-            store.set(currentLyricAtom, {
-                parser: this.parser,
-                currentLrc: this.parser.getPosition(currentTime + this.userOffset) ?? undefined,
-            });
+            );
         } catch {
             if (this.currentMusicKey === key) {
                 this.parser = null;
                 store.set(currentLyricAtom, null);
+                if (!meta?.associatedLyric && !meta?.associatedLyricSkipped) {
+                    void this.tryAutoSearchLyric(musicItem, key);
+                }
             }
         }
     }
@@ -129,6 +170,108 @@ class LyricManager {
         this.currentMusicKey = null;
         store.set(currentLyricAtom, null);
         await this.fetchLyric(musicItem);
+    }
+
+    /** 用歌词文本构建解析器并写入 atom（初始定位到当前播放时间） */
+    private applyLyric(
+        rawLrc: string,
+        translation: string | undefined,
+        musicItem: IMusic.IMusicItem,
+    ): void {
+        this.parser = new LyricParser(rawLrc, {
+            musicItem,
+            translation,
+        });
+
+        // C-17: 初始定位到当前播放时间（恢复播放等场景，避免歌词从头开始）
+        const currentTime = store.get(progressAtom).currentTime;
+        store.set(currentLyricAtom, {
+            parser: this.parser,
+            currentLrc: this.parser.getPosition(currentTime + this.userOffset) ?? undefined,
+        });
+    }
+
+    /**
+     * 当前歌曲无歌词时，自动在所有支持歌词搜索的插件中查找同名歌曲：
+     * 并发搜索 → 标题/歌手匹配打分 → 取最佳候选的歌词 → 写入关联并即时替换。
+     * 关联成功后写入 mediaMeta.associatedLyric，以后播放直接命中缓存。
+     */
+    private async tryAutoSearchLyric(musicItem: IMusic.IMusicItem, key: string): Promise<void> {
+        if (appConfig.getConfigByKey('lyric.autoSearchMissing') === false) return;
+        if (this.autoSearchTried.has(key)) return;
+        this.autoSearchTried.add(key);
+
+        const title = musicItem.title ?? '';
+        if (!title.trim()) return;
+        const artist = musicItem.artist ?? '';
+        const query = [title, artist].filter((s) => s?.trim()).join(' ');
+
+        const plugins = pluginManager.getSearchablePlugins('lyric');
+        if (plugins.length === 0) return;
+
+        // 并发搜索全部插件，收集候选
+        const searchResults = await Promise.allSettled(
+            plugins.map((plugin) =>
+                pluginManager.callPluginMethod({
+                    hash: plugin.hash,
+                    method: 'search',
+                    args: [query, 1, 'lyric'],
+                }),
+            ),
+        );
+
+        const candidates: Array<{ item: IMusic.IMusicItem; score: number }> = [];
+        searchResults.forEach((result) => {
+            if (result.status !== 'fulfilled') return;
+            const items = (result.value?.data ?? []) as IMusic.IMusicItem[];
+            for (const item of items.slice(0, AUTO_SEARCH_CANDIDATE_LIMIT)) {
+                const score = scoreLyricCandidate(item, title, artist);
+                if (score >= AUTO_SEARCH_MIN_SCORE) {
+                    candidates.push({ item, score });
+                }
+            }
+        });
+        if (candidates.length === 0) return;
+
+        // 按匹配分从高到低，依次尝试取歌词，第一个成功者胜出
+        candidates.sort((a, b) => b.score - a.score);
+        for (const { item } of candidates) {
+            if (this.currentMusicKey !== key) return; // 已切歌
+
+            let lyricSource: ILyric.ILyricSource | null = null;
+            try {
+                lyricSource = await pluginManager.callPluginMethod({
+                    platform: item.platform,
+                    method: 'getLyric',
+                    args: [item],
+                });
+            } catch {
+                continue;
+            }
+
+            if (this.currentMusicKey !== key) return;
+            if (!lyricSource?.rawLrc && !lyricSource?.translation) continue;
+
+            const rawLrc = lyricSource.rawLrc ?? lyricSource.translation ?? '';
+            const translation = lyricSource.rawLrc ? lyricSource.translation : undefined;
+
+            // 写入关联（含文本缓存），与手动「关联歌词」结构一致
+            await mediaMeta
+                .setMeta(musicItem.platform, String(musicItem.id), {
+                    associatedLyric: {
+                        musicItem: item,
+                        rawLrc,
+                        translation,
+                    },
+                    associatedLyricSkipped: null,
+                })
+                .catch(() => {});
+
+            if (this.currentMusicKey !== key) return;
+            store.set(associatedLyricAtom, item);
+            this.applyLyric(rawLrc, translation, musicItem);
+            return;
+        }
     }
 }
 
