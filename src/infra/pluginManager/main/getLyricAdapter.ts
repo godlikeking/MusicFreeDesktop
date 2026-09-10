@@ -94,8 +94,8 @@ export async function getLyricAdapter(
     // ─── Step 0: 用户关联歌词优先 ───
     const associated = mediaMeta.getAssociatedLyric(musicItem.platform, String(musicItem.id));
     if (associated) {
-        // 0a: 有缓存的歌词文本，直接返回
-        if (associated.rawLrc) {
+        // 0a: 有缓存的歌词文本（非空白），直接返回
+        if (associated.rawLrc?.trim()) {
             return {
                 rawLrc: associated.rawLrc,
                 translation: associated.translation,
@@ -112,9 +112,9 @@ export async function getLyricAdapter(
                     args: [associated.musicItem],
                 });
 
-                if (linkedSource?.rawLrc || linkedSource?.translation) {
-                    const linkedRawLrc = linkedSource.rawLrc ?? linkedSource.translation;
-                    const linkedTranslation = linkedSource.rawLrc
+                if (linkedSource?.rawLrc?.trim() || linkedSource?.translation?.trim()) {
+                    const linkedRawLrc = (linkedSource.rawLrc ?? linkedSource.translation).trim();
+                    const linkedTranslation = linkedSource.rawLrc?.trim()
                         ? linkedSource.translation
                         : undefined;
 
